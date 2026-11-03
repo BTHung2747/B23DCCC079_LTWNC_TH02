@@ -7,16 +7,19 @@ import { useDebounce } from '../../hooks/useTriHoan';
 import type { Exercise, MuscleGroup } from '../../kieuDuLieu';
 import ExerciseRow from './DongBaiTap';
 import { useSessionStore } from '../session/khoBuoiTap';
+import { useRoutineDispatch, useRoutines } from '../routines/NguCanhGiaoAn';
 
 type SortOrder = 'default' | 'name' | 'duration';
 interface ListData {
   exercises: Exercise[];
   onStart: (exercise: Exercise) => void;
   onAdd: (exercise: Exercise) => void;
+  onAddToRoutine: (exercise: Exercise) => void;
+  canAddToRoutine: boolean;
 }
 
 const VirtualRow = memo(function VirtualRow({ index, style, data }: ListChildComponentProps<ListData>) {
-  return <ExerciseRow exercise={data.exercises[index]} index={index} style={style} onStart={data.onStart} onAdd={data.onAdd} />;
+  return <ExerciseRow exercise={data.exercises[index]} index={index} style={style} onStart={data.onStart} onAdd={data.onAdd} onAddToRoutine={data.onAddToRoutine} canAddToRoutine={data.canAddToRoutine} />;
 });
 
 function itemKey(index: number, data: ListData) {
@@ -33,6 +36,11 @@ export default function LibraryPage() {
   const [sortOrder, setSortOrder] = useState<SortOrder>('default');
   const startSession = useSessionStore((state) => state.startSession);
   const addToSession = useSessionStore((state) => state.addToSession);
+  const routines = useRoutines();
+  const dispatch = useRoutineDispatch();
+  const [selectedRoutineId, setSelectedRoutineId] = useState('');
+  const activeRoutineId = routines.some((routine) => routine.id === selectedRoutineId) ? selectedRoutineId : (routines[0]?.id ?? '');
+  const [notice, setNotice] = useState('');
   const debouncedKeyword = useDebounce(keyword, 300);
   const listRef = useRef<FixedSizeList<ListData>>(null);
 
@@ -53,7 +61,14 @@ export default function LibraryPage() {
   const handleStart = useCallback((exercise: Exercise) => {
     startSession(exercises, exercises.findIndex((item) => item.id === exercise.id));
   }, [exercises, startSession]);
-  const itemData = useMemo<ListData>(() => ({ exercises, onStart: handleStart, onAdd: addToSession }), [exercises, handleStart, addToSession]);
+  const handleAddToRoutine = useCallback((exercise: Exercise) => {
+    if (!activeRoutineId) return;
+    const routine = routines.find((item) => item.id === activeRoutineId);
+    const alreadyAdded = routine?.exerciseIds.includes(exercise.id);
+    dispatch({ type: 'addExercise', id: activeRoutineId, exerciseId: exercise.id });
+    setNotice(alreadyAdded ? `${exercise.name} đã có trong giáo án.` : `Đã thêm ${exercise.name} vào ${routine?.name}.`);
+  }, [activeRoutineId, dispatch, routines]);
+  const itemData = useMemo<ListData>(() => ({ exercises, onStart: handleStart, onAdd: addToSession, onAddToRoutine: handleAddToRoutine, canAddToRoutine: !!activeRoutineId }), [exercises, handleStart, addToSession, handleAddToRoutine, activeRoutineId]);
 
   useEffect(() => { listRef.current?.scrollTo(0); }, [exercises]);
 
@@ -88,7 +103,7 @@ export default function LibraryPage() {
         </div>
         <div className="results-bar">
           <p aria-live="polite">Tìm thấy <strong>{exercises.length}</strong> bài tập</p>
-          <span className="subtle">Chọn một bài để bắt đầu</span>
+          <div className="routine-picker"><label htmlFor="selected-routine">Giáo án đang chọn</label><select id="selected-routine" value={activeRoutineId} disabled={routines.length === 0} onChange={(event) => setSelectedRoutineId(event.target.value)}>{routines.length === 0 && <option value="">Chưa có giáo án</option>}{routines.map((routine) => <option key={routine.id} value={routine.id}>{routine.name}</option>)}</select></div>
         </div>
         {exercises.length > 0 ? (
           <div className="table-scroll">
@@ -102,7 +117,7 @@ export default function LibraryPage() {
             </div>
           </div>
         ) : <div className="empty-state"><h2>Không tìm thấy bài tập nào</h2><p>Thử từ khóa hoặc nhóm cơ khác nhé.</p></div>}
-        <div className="panel-footer"><span>Vận động theo nhịp của bạn.</span><span>5 nhóm cơ · 30–120 giây / bài</span></div>
+        <div className="panel-footer"><span role="status">{notice || 'Vận động theo nhịp của bạn.'}</span><span>5 nhóm cơ · 30–120 giây / bài</span></div>
       </section>
     </>
   );

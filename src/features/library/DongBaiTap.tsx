@@ -11,9 +11,10 @@ export interface ExerciseRowProps {
   onStart: (exercise: Exercise) => void;
   onAdd?: (exercise: Exercise) => void;
   onAddToRoutine?: (exercise: Exercise) => void;
+  canAddToRoutine?: boolean;
 }
 
-const ExerciseRow = memo(function ExerciseRow({ exercise, index, style, onStart, onAdd, onAddToRoutine }: ExerciseRowProps) {
+const ExerciseRow = memo(function ExerciseRow({ exercise, index, style, onStart, onAdd, onAddToRoutine, canAddToRoutine = false }: ExerciseRowProps) {
   const isSaved = useSavedStore((state) => state.ids.includes(exercise.id));
   const toggleSaved = useSavedStore((state) => state.toggle);
   return (
@@ -27,7 +28,7 @@ const ExerciseRow = memo(function ExerciseRow({ exercise, index, style, onStart,
         <button className="button button-start" onClick={() => onStart(exercise)}>Bắt đầu</button>
         <button className={`icon-button ${isSaved ? 'is-saved' : ''}`} onClick={() => toggleSaved(exercise.id)} aria-label={isSaved ? 'Bỏ lưu' : 'Lưu bài tập'} aria-pressed={isSaved}>{isSaved ? '★' : '☆'}</button>
         <button className="button button-quiet" disabled={!onAdd} onClick={() => onAdd?.(exercise)}>+ Buổi tập</button>
-        {onAddToRoutine && <button className="button button-quiet" onClick={() => onAddToRoutine(exercise)}>+ Giáo án</button>}
+        {onAddToRoutine && <button className="button button-quiet" disabled={!canAddToRoutine} onClick={() => onAddToRoutine(exercise)}>+ Giáo án</button>}
       </div>
     </div>
   );

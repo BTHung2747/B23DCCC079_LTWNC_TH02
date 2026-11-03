@@ -2,6 +2,7 @@ import { memo } from 'react';
 import type { CSSProperties } from 'react';
 import type { Exercise } from '../../kieuDuLieu';
 import { formatDuration } from '../../utils/dinhDangThoiGian';
+import { useSavedStore } from '../saved/khoBaiTapDaLuu';
 
 export interface ExerciseRowProps {
   exercise: Exercise;
@@ -13,6 +14,8 @@ export interface ExerciseRowProps {
 }
 
 const ExerciseRow = memo(function ExerciseRow({ exercise, index, style, onStart, onAdd, onAddToRoutine }: ExerciseRowProps) {
+  const isSaved = useSavedStore((state) => state.ids.includes(exercise.id));
+  const toggleSaved = useSavedStore((state) => state.toggle);
   return (
     <div className="exercise-row" style={style} role="listitem" data-exercise-id={exercise.id}>
       <span className="row-number">{String(index + 1).padStart(2, '0')}</span>
@@ -22,7 +25,7 @@ const ExerciseRow = memo(function ExerciseRow({ exercise, index, style, onStart,
       <span className="duration">{formatDuration(exercise.duration)}</span>
       <div className="row-actions">
         <button className="button button-start" onClick={() => onStart(exercise)}>Bắt đầu</button>
-        <button className="icon-button" disabled aria-label="Lưu bài tập">☆</button>
+        <button className={`icon-button ${isSaved ? 'is-saved' : ''}`} onClick={() => toggleSaved(exercise.id)} aria-label={isSaved ? 'Bỏ lưu' : 'Lưu bài tập'} aria-pressed={isSaved}>{isSaved ? '★' : '☆'}</button>
         <button className="button button-quiet" disabled={!onAdd} onClick={() => onAdd?.(exercise)}>+ Buổi tập</button>
         {onAddToRoutine && <button className="button button-quiet" onClick={() => onAddToRoutine(exercise)}>+ Giáo án</button>}
       </div>

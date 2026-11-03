@@ -6,15 +6,17 @@ import { EXERCISES, GROUPS } from '../../data/baiTap';
 import { useDebounce } from '../../hooks/useTriHoan';
 import type { Exercise, MuscleGroup } from '../../kieuDuLieu';
 import ExerciseRow from './DongBaiTap';
+import { useSessionStore } from '../session/khoBuoiTap';
 
 type SortOrder = 'default' | 'name' | 'duration';
 interface ListData {
   exercises: Exercise[];
   onStart: (exercise: Exercise) => void;
+  onAdd: (exercise: Exercise) => void;
 }
 
 const VirtualRow = memo(function VirtualRow({ index, style, data }: ListChildComponentProps<ListData>) {
-  return <ExerciseRow exercise={data.exercises[index]} index={index} style={style} onStart={data.onStart} />;
+  return <ExerciseRow exercise={data.exercises[index]} index={index} style={style} onStart={data.onStart} onAdd={data.onAdd} />;
 });
 
 function itemKey(index: number, data: ListData) {
@@ -29,7 +31,8 @@ export default function LibraryPage() {
   const [keyword, setKeyword] = useState('');
   const [group, setGroup] = useState<MuscleGroup | 'all'>('all');
   const [sortOrder, setSortOrder] = useState<SortOrder>('default');
-  const [selectedExercise, setSelectedExercise] = useState<Exercise | null>(null);
+  const startSession = useSessionStore((state) => state.startSession);
+  const addToSession = useSessionStore((state) => state.addToSession);
   const debouncedKeyword = useDebounce(keyword, 300);
   const listRef = useRef<FixedSizeList<ListData>>(null);
 
@@ -47,8 +50,10 @@ export default function LibraryPage() {
   const handleKeywordChange = useCallback((event: ChangeEvent<HTMLInputElement>) => {
     setKeyword(event.target.value);
   }, []);
-  const handleStart = useCallback((exercise: Exercise) => setSelectedExercise(exercise), []);
-  const itemData = useMemo<ListData>(() => ({ exercises, onStart: handleStart }), [exercises, handleStart]);
+  const handleStart = useCallback((exercise: Exercise) => {
+    startSession(exercises, exercises.findIndex((item) => item.id === exercise.id));
+  }, [exercises, startSession]);
+  const itemData = useMemo<ListData>(() => ({ exercises, onStart: handleStart, onAdd: addToSession }), [exercises, handleStart, addToSession]);
 
   useEffect(() => { listRef.current?.scrollTo(0); }, [exercises]);
 
@@ -99,7 +104,6 @@ export default function LibraryPage() {
         ) : <div className="empty-state"><h2>Không tìm thấy bài tập nào</h2><p>Thử từ khóa hoặc nhóm cơ khác nhé.</p></div>}
         <div className="panel-footer"><span>Vận động theo nhịp của bạn.</span><span>5 nhóm cơ · 30–120 giây / bài</span></div>
       </section>
-      {selectedExercise && <p role="status">Đã chọn: {selectedExercise.name}</p>}
     </>
   );
 }

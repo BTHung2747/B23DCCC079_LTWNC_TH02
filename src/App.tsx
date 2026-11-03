@@ -1,5 +1,7 @@
 import { NavLink, Route, Routes } from 'react-router-dom';
 import LibraryPage from './features/library/TrangKhoBaiTap';
+import SavedPage from './features/saved/TrangBaiTapDaLuu';
+import SessionBar from './features/session/ThanhBuoiTap';
 
 export default function App() {
   return (
@@ -20,12 +22,13 @@ export default function App() {
       <main id="main-content" className="main-content">
         <Routes>
           <Route path="/" element={<LibraryPage />} />
-          <Route path="/saved" element={<p className="empty-state">Bài tập đã lưu sẽ có ở Phần 2.</p>} />
+          <Route path="/saved" element={<SavedPage />} />
           <Route path="/routines" element={<p className="empty-state">Giáo án sẽ có ở Phần 3.</p>} />
           <Route path="/routines/:id" element={<p className="empty-state">Chi tiết giáo án sẽ có ở Phần 3.</p>} />
           <Route path="*" element={<p className="empty-state">Không tìm thấy trang.</p>} />
         </Routes>
       </main>
+      <SessionBar />
     </div>
   );
 }

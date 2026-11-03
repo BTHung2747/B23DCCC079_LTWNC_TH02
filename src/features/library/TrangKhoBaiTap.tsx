@@ -1,13 +1,16 @@
 import { forwardRef, memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ChangeEvent, HTMLAttributes } from 'react';
+import { Link } from 'react-router-dom';
 import { FixedSizeList } from 'react-window';
 import type { ListChildComponentProps } from 'react-window';
 import { EXERCISES, GROUPS } from '../../data/baiTap';
 import { useDebounce } from '../../hooks/useTriHoan';
 import type { Exercise, MuscleGroup } from '../../kieuDuLieu';
 import ExerciseRow from './DongBaiTap';
-import { useSessionStore } from '../session/khoBuoiTap';
+import { useManuallyAddedExerciseIds, useSessionExerciseIds, useSessionStore } from '../session/khoBuoiTap';
 import { useRoutineDispatch, useRoutines } from '../routines/NguCanhGiaoAn';
+import { useNotification } from '../../hooks/useThongBao';
+import Notification from '../../components/ThongBao';
 
 type SortOrder = 'default' | 'name' | 'duration';
 interface ListData {
@@ -16,10 +19,13 @@ interface ListData {
   onAdd: (exercise: Exercise) => void;
   onAddToRoutine: (exercise: Exercise) => void;
   canAddToRoutine: boolean;
+  addedSessionExerciseIds: ReadonlySet<string>;
+  routineExerciseIds: ReadonlySet<string>;
 }
 
 const VirtualRow = memo(function VirtualRow({ index, style, data }: ListChildComponentProps<ListData>) {
-  return <ExerciseRow exercise={data.exercises[index]} index={index} style={style} onStart={data.onStart} onAdd={data.onAdd} onAddToRoutine={data.onAddToRoutine} canAddToRoutine={data.canAddToRoutine} />;
+  const exercise = data.exercises[index];
+  return <ExerciseRow exercise={exercise} index={index} style={style} onStart={data.onStart} onAdd={data.onAdd} onAddToRoutine={data.onAddToRoutine} canAddToRoutine={data.canAddToRoutine} isAddedToSession={data.addedSessionExerciseIds.has(exercise.id)} isInRoutine={data.routineExerciseIds.has(exercise.id)} />;
 });
 
 function itemKey(index: number, data: ListData) {
@@ -36,11 +42,15 @@ export default function LibraryPage() {
   const [sortOrder, setSortOrder] = useState<SortOrder>('default');
   const startSession = useSessionStore((state) => state.startSession);
   const addToSession = useSessionStore((state) => state.addToSession);
+  const sessionExerciseIds = useSessionExerciseIds();
+  const addedSessionExerciseIds = useManuallyAddedExerciseIds();
   const routines = useRoutines();
   const dispatch = useRoutineDispatch();
   const [selectedRoutineId, setSelectedRoutineId] = useState('');
   const activeRoutineId = routines.some((routine) => routine.id === selectedRoutineId) ? selectedRoutineId : (routines[0]?.id ?? '');
-  const [notice, setNotice] = useState('');
+  const activeRoutine = useMemo(() => routines.find((routine) => routine.id === activeRoutineId), [routines, activeRoutineId]);
+  const routineExerciseIds = useMemo(() => new Set(activeRoutine?.exerciseIds ?? []), [activeRoutine]);
+  const { notification, showNotification, dismissNotification } = useNotification();
   const debouncedKeyword = useDebounce(keyword, 300);
   const listRef = useRef<FixedSizeList<ListData>>(null);
 
@@ -62,13 +72,17 @@ export default function LibraryPage() {
     startSession(exercises, exercises.findIndex((item) => item.id === exercise.id));
   }, [exercises, startSession]);
   const handleAddToRoutine = useCallback((exercise: Exercise) => {
-    if (!activeRoutineId) return;
-    const routine = routines.find((item) => item.id === activeRoutineId);
-    const alreadyAdded = routine?.exerciseIds.includes(exercise.id);
-    dispatch({ type: 'addExercise', id: activeRoutineId, exerciseId: exercise.id });
-    setNotice(alreadyAdded ? `${exercise.name} đã có trong giáo án.` : `Đã thêm ${exercise.name} vào ${routine?.name}.`);
-  }, [activeRoutineId, dispatch, routines]);
-  const itemData = useMemo<ListData>(() => ({ exercises, onStart: handleStart, onAdd: addToSession, onAddToRoutine: handleAddToRoutine, canAddToRoutine: !!activeRoutineId }), [exercises, handleStart, addToSession, handleAddToRoutine, activeRoutineId]);
+    if (!activeRoutine) return;
+    const alreadyAdded = routineExerciseIds.has(exercise.id);
+    dispatch({ type: 'addExercise', id: activeRoutine.id, exerciseId: exercise.id });
+    showNotification(alreadyAdded ? `${exercise.name} đã có trong giáo án ${activeRoutine.name}.` : `Đã thêm ${exercise.name} vào giáo án ${activeRoutine.name}.`, alreadyAdded ? 'info' : 'success');
+  }, [activeRoutine, routineExerciseIds, dispatch, showNotification]);
+  const handleAddToSession = useCallback((exercise: Exercise) => {
+    const alreadyAdded = sessionExerciseIds.has(exercise.id);
+    addToSession(exercise);
+    showNotification(alreadyAdded ? `${exercise.name} đã có trong buổi tập.` : `Đã thêm ${exercise.name} vào buổi tập.`, alreadyAdded ? 'info' : 'success');
+  }, [sessionExerciseIds, addToSession, showNotification]);
+  const itemData = useMemo<ListData>(() => ({ exercises, onStart: handleStart, onAdd: handleAddToSession, onAddToRoutine: handleAddToRoutine, canAddToRoutine: !!activeRoutine, addedSessionExerciseIds, routineExerciseIds }), [exercises, handleStart, handleAddToSession, handleAddToRoutine, activeRoutine, addedSessionExerciseIds, routineExerciseIds]);
 
   useEffect(() => { listRef.current?.scrollTo(0); }, [exercises]);
 
@@ -103,11 +117,11 @@ export default function LibraryPage() {
         </div>
         <div className="results-bar">
           <p aria-live="polite">Tìm thấy <strong>{exercises.length}</strong> bài tập</p>
-          <div className="routine-picker"><label htmlFor="selected-routine">Giáo án đang chọn</label><select id="selected-routine" value={activeRoutineId} disabled={routines.length === 0} onChange={(event) => setSelectedRoutineId(event.target.value)}>{routines.length === 0 && <option value="">Chưa có giáo án</option>}{routines.map((routine) => <option key={routine.id} value={routine.id}>{routine.name}</option>)}</select></div>
+          <div className="routine-picker"><label htmlFor="selected-routine">Giáo án đang chọn</label><select id="selected-routine" value={activeRoutineId} disabled={routines.length === 0} onChange={(event) => setSelectedRoutineId(event.target.value)}>{routines.length === 0 && <option value="">Chưa có giáo án</option>}{routines.map((routine) => <option key={routine.id} value={routine.id}>{routine.name}</option>)}</select><Link className="routine-create-link" to="/routines">+ Tạo giáo án</Link></div>
         </div>
         {exercises.length > 0 ? (
           <div className="table-scroll">
-            <div className="table-content">
+            <div className="table-content virtual-table">
               <div className="table-header" aria-hidden="true">
                 <span>#</span><span>BÀI TẬP</span><span>HUẤN LUYỆN VIÊN</span><span>NHÓM CƠ</span><span>THỜI GIAN</span><span>THAO TÁC</span>
               </div>
@@ -117,8 +131,9 @@ export default function LibraryPage() {
             </div>
           </div>
         ) : <div className="empty-state"><h2>Không tìm thấy bài tập nào</h2><p>Thử từ khóa hoặc nhóm cơ khác nhé.</p></div>}
-        <div className="panel-footer"><span role="status">{notice || 'Vận động theo nhịp của bạn.'}</span><span>5 nhóm cơ · 30–120 giây / bài</span></div>
+        <div className="panel-footer"><span>Vận động theo nhịp của bạn.</span><span>5 nhóm cơ · 30–120 giây / bài</span></div>
       </section>
+      <Notification notification={notification} onDismiss={dismissNotification} />
     </>
   );
 }

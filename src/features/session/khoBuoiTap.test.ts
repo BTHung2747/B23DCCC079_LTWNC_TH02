@@ -3,7 +3,7 @@ import { EXERCISES } from '../../data/baiTap';
 import { useSessionStore } from './khoBuoiTap';
 
 describe('Kho trạng thái buổi tập', () => {
-  beforeEach(() => useSessionStore.setState({ queue: [], currentIndex: -1, isRunning: false, elapsed: 0 }));
+  beforeEach(() => useSessionStore.setState({ queue: [], manuallyAddedIds: [], currentIndex: -1, isRunning: false, elapsed: 0 }));
   const state = () => useSessionStore.getState();
 
   it('bắt đầu đúng bài và đặt lại số giây', () => {
@@ -59,6 +59,7 @@ describe('Kho trạng thái buổi tập', () => {
     state().addToSession(EXERCISES[0]);
     state().addToSession(EXERCISES[0]);
     expect(state().queue).toHaveLength(1);
+    expect(state().manuallyAddedIds).toEqual(['e1']);
     state().toggleRun();
     expect(state()).toMatchObject({ currentIndex: 0, isRunning: true });
   });
@@ -77,5 +78,16 @@ describe('Kho trạng thái buổi tập', () => {
     useSessionStore.setState({ elapsed: 30, isRunning: false });
     state().toggleRun();
     expect(state()).toMatchObject({ elapsed: 0, isRunning: true });
+  });
+  it('bắt đầu buổi mới đặt lại dấu thêm thủ công', () => {
+    state().addToSession(EXERCISES[0]);
+    expect(state().manuallyAddedIds).toEqual(['e1']);
+    state().startSession(EXERCISES.slice(0, 3));
+    expect(state().queue).toHaveLength(3);
+    expect(state().manuallyAddedIds).toEqual([]);
+    state().addToSession(EXERCISES[1]);
+    state().addToSession(EXERCISES[1]);
+    expect(state().queue).toHaveLength(3);
+    expect(state().manuallyAddedIds).toEqual(['e2']);
   });
 });

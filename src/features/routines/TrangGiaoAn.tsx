@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useRoutineDispatch, useRoutines } from './NguCanhGiaoAn';
 import RoutineCreateForm from './BieuMauTaoGiaoAn';
+import { SAMPLE_ROUTINES } from '../../data/giaoAnMau';
 
 export default function RoutinesPage() {
   const routines = useRoutines();
@@ -26,7 +27,7 @@ export default function RoutinesPage() {
         <div className="routine-grid">
           {routines.map((routine, index) => (
             <article className="routine-card" key={routine.id}>
-              <span className="routine-number">{String(index + 1).padStart(2, '0')}</span>
+              <div className="routine-card-label"><span className="routine-number">{String(index + 1).padStart(2, '0')}</span>{SAMPLE_ROUTINES.some((sample) => sample.id === routine.id) && <span className="routine-sample-label">Giáo án mẫu</span>}</div>
               <h3><Link to={`/routines/${routine.id}`}>{routine.name}</Link></h3>
               <p>{routine.exerciseIds.length} bài</p>
               <div className="routine-card-footer"><Link className="button button-start" to={`/routines/${routine.id}`}>Xem chi tiết →</Link><button className="button button-quiet danger-button" onClick={() => dispatch({ type: 'remove', id: routine.id })} aria-label={`Xóa giáo án ${routine.name}`}>Xóa</button></div>

@@ -10,6 +10,7 @@ export default function SessionBar() {
   const next = useSessionStore((state) => state.next);
   const prev = useSessionStore((state) => state.prev);
   const tick = useSessionStore((state) => state.tick);
+  const runLabel = isRunning ? 'Tạm dừng' : currentExercise ? 'Tiếp tục' : 'Bắt đầu';
 
   useEffect(() => {
     if (!isRunning) return;
@@ -30,7 +31,7 @@ export default function SessionBar() {
         <CountdownBar />
         <div className="session-controls">
           <button className="button button-quiet" onClick={prev} disabled={!currentExercise}>Trước</button>
-          <button className="button button-primary run-button" onClick={toggleRun} disabled={queueLength === 0}>{isRunning ? 'Tạm dừng' : 'Bắt đầu'}</button>
+          <button className="button button-primary run-button" onClick={toggleRun} disabled={queueLength === 0}>{runLabel}</button>
           <button className="button button-quiet" onClick={next} disabled={!currentExercise}>Sau</button>
         </div>
         <p className="queue-count">Buổi tập: <strong>{queueLength}</strong> bài</p>

@@ -5,6 +5,7 @@ export default defineConfig({
   plugins: [react()],
   test: {
     environment: 'jsdom',
+    maxWorkers: 4,
     setupFiles: './src/thietLapKiemThu.ts',
     coverage: {
       provider: 'v8',

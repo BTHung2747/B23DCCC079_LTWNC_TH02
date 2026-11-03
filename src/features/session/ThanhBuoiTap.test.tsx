@@ -7,7 +7,7 @@ import SessionBar from './ThanhBuoiTap';
 describe('Thanh đồng hồ', () => {
   beforeEach(() => {
     vi.useFakeTimers();
-    useSessionStore.setState({ queue: [], currentIndex: -1, isRunning: false, elapsed: 0 });
+    useSessionStore.setState({ queue: [], manuallyAddedIds: [], currentIndex: -1, isRunning: false, elapsed: 0 });
   });
   afterEach(() => vi.useRealTimers());
 
@@ -23,9 +23,10 @@ describe('Thanh đồng hồ', () => {
     act(() => vi.advanceTimersByTime(5000));
     expect(screen.getByText('1:02')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Tạm dừng' }));
+    expect(screen.getByRole('button', { name: 'Tiếp tục' })).toBeInTheDocument();
     act(() => vi.advanceTimersByTime(3000));
     expect(screen.getByText('1:02')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Bắt đầu' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Tiếp tục' }));
     fireEvent.click(screen.getByRole('button', { name: 'Sau' }));
     expect(screen.getByText('1:44')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Trước' }));

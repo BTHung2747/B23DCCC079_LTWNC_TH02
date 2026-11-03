@@ -6,3 +6,24 @@ coverage/
 .DS_Store
 *.tsbuildinfo
 .qa/
+
+# Local AI assistant instructions, configuration and generated reviews
+AGENTS.md
+AGENT.md
+CLAUDE.md
+GEMINI.md
+SKILL.md
+.agents/
+.codex/
+.claude/
+.cursor/
+.windsurf/
+.openai/
+.taste-skill/
+.cursorrules
+.cursorignore
+.windsurfrules
+.aider*
+.mcp.json
+.github/copilot-instructions.md
+.github/instructions/
